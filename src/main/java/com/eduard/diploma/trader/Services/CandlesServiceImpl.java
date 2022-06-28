@@ -235,11 +235,4 @@ public class CandlesServiceImpl implements CandlesService, CandlesProcessingServ
 
         return kindsCandlesList;
     }
-
-    public Mono<PackageCandles> findAllLastCandles(){
-        return Mono.zip(findLastCandle(KindsCandles.ONE), findLastCandle(KindsCandles.THREE), findLastCandle(KindsCandles.FIVE),
-                        findLastCandle(KindsCandles.FIFTEEN), findLastCandle(KindsCandles.THIRTY), findLastCandle(KindsCandles.SIXTY))
-                .map(tuple -> new PackageCandles(tuple.getT1(), tuple.getT2(), tuple.getT3(), tuple.getT4(), tuple.getT5(), tuple.getT6()));
-    }
-
 }

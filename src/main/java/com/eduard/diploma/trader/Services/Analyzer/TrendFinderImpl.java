@@ -1,7 +1,6 @@
 package com.eduard.diploma.trader.Services.Analyzer;
 
 import com.eduard.diploma.trader.Models.Candles.Candle;
-import com.eduard.diploma.trader.Services.CandlesService;
 import com.eduard.diploma.trader.Services.CandlesServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -57,8 +56,9 @@ public class TrendFinderImpl implements TrendFinder {
         }
         Collections.reverse(minimumsList);
 
-        List<CandleType> maximumsList = new LinkedList<>(List.of(candlesList.get(borderIndex)));
-        CandleType currentMaximumCandle = candlesList.get(borderIndex);
+        CandleType borderCandle =  candlesList.get(borderIndex);
+        List<CandleType> maximumsList = new LinkedList<>(List.of(borderCandle));
+        CandleType currentMaximumCandle = borderCandle;
 
         for (int i = borderIndex + 1; i < sizeCandlesList; i++){
             if (Double.parseDouble(candlesList.get(i).getMaxPrice()) > Double.parseDouble(currentMaximumCandle.getMaxPrice())){
@@ -69,9 +69,10 @@ public class TrendFinderImpl implements TrendFinder {
         return new HashMap<>(Map.of("Minimums", minimumsList, "AllUpTrend", candlesList.subList(borderIndex, candlesList.size() - 1), "Maximums", maximumsList));
     }
 
-    private <CandleType extends Candle> HashMap<String, List<? extends Candle>> searchDownTrend(List<CandleType> candlesList){
-        List<CandleType> maximumsList = new ArrayList<>(List.of(candlesList.get(candlesList.size() - 1)));
-        CandleType currentMaximum = candlesList.get(candlesList.size() - 1);
+    private <CandleType extends Candle> HashMap<String, List<? extends Candle>> searchDownTrend(List<CandleType> candlesList){////////////////////////////
+        int penultimateCandle = candlesList.size() - 1;
+        List<CandleType> maximumsList = new ArrayList<>(List.of(candlesList.get(penultimateCandle)));
+        CandleType currentMaximum = candlesList.get(penultimateCandle);
         int indexCurrentMaximum = 0;
 
         for (int i = candlesList.size() - 2; i > 0; i--){

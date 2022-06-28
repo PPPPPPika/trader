@@ -7,6 +7,13 @@ import java.util.*;
 
 @Component
 public class TimeManager {
+    /*private final TimeManager timeManager;
+
+    @Autowired
+    public TimeWarden(TimeManager timeManager) {
+        this.timeManager = timeManager;
+    }*/
+
     private final static Map<KindsCandles, int[]> mapWorkTime =
             new HashMap<>(
                     Map.of(KindsCandles.THREE, new int[]{3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57, 0},
@@ -16,7 +23,19 @@ public class TimeManager {
                             KindsCandles.SIXTY, new int[]{0})
             );
 
-    public KindsCandles[] identifyCurrentCandles(int currentMinute){
+    public List<KindsCandles> getCurrentCandles(Calendar calendar){
+        List<KindsCandles> listCurrentCandles = new LinkedList<>(List.of(KindsCandles.ONE));
+        listCurrentCandles.addAll(
+                Arrays.stream(identifyCurrentCandles(calendar.get(Calendar.MINUTE)))
+                        .filter(Objects::nonNull)
+                        .toList()
+        );
+        return listCurrentCandles.stream()
+                .sorted(Comparator.comparing(KindsCandles::getDurationInterval))
+                .toList();
+    }
+
+    private KindsCandles[] identifyCurrentCandles(int currentMinute){
         KindsCandles[] currentCandles = new KindsCandles[5];
         int index = 0;
         for (Map.Entry<KindsCandles, int[]> workTime : mapWorkTime.entrySet()){
@@ -35,4 +54,5 @@ public class TimeManager {
         }
         return false;
     }
+
 }

@@ -28,9 +28,8 @@ public class RangeCalculatorImpl implements RangeCalculator{
         return Flux.just("")
                 .flatMap(emptyValue -> explorerExtremesImpl.reviewExtremes(currenciesPairs))
                 .filter(map -> {
-                    if (map.keySet().size() == 1){
+                    if (map.keySet().size() == 1)
                         return correctnessLastExtreme(map.get(map.keySet().stream().limit(1).toList().get(0)));
-                    }
                     else
                         return false;
                 })
@@ -45,7 +44,7 @@ public class RangeCalculatorImpl implements RangeCalculator{
         for (Map.Entry<KindsCandles, List<? extends Candle>> currentMap : map.entrySet()){
             int listSize = currentMap.getValue().size();
             int index = 0;
-            for (int i = listSize - 4; i < listSize; i+=2){
+            for (int i = listSize - 4; i < listSize; i += 2){
                 String middle =
                         new BigDecimal(currentMap.getValue().get(i + 1).getMaxPrice())
                                 .subtract(new BigDecimal(currentMap.getValue().get(i).getMinPrice()))
@@ -67,8 +66,9 @@ public class RangeCalculatorImpl implements RangeCalculator{
         Candle lastCandle = extremesList.get(extremesList.size() - 1);
         int sizeExtremesList = extremesList.size();
         for (int i = 0; i < sizeExtremesList - 1; i++){
-            if (lastCandle.getCloseTime() > extremesList.get(i).getCloseTime()
-                    && Double.parseDouble(lastCandle.getMaxPrice()) > Double.parseDouble(extremesList.get(i).getMaxPrice()))
+            Candle currentExtreme = extremesList.get(i);
+            if (lastCandle.getCloseTime() > currentExtreme.getCloseTime()
+                    && Double.parseDouble(lastCandle.getMaxPrice()) > Double.parseDouble(currentExtreme.getMaxPrice()))
                 return true;
         }
         return false;

@@ -27,7 +27,7 @@ public class ReceiverLaunchServiceImpl implements ReceiverLaunchService {
     }
 
     @Override
-    public Flux<PackageCandles> start(CurrenciesPairs currenciesPairs){
+    public Flux<PackageCandles> active(CurrenciesPairs currenciesPairs){
         return Flux.just("")
                 .flatMap(emptyValue -> {
                     if (!ACTIVITY_STATUS){
@@ -47,25 +47,14 @@ public class ReceiverLaunchServiceImpl implements ReceiverLaunchService {
         return Flux.just("")
                 .flatMap(emptyValue -> {
                     Calendar calendar = new GregorianCalendar();
-                    if (calendar.get(Calendar.SECOND) == 0){
-                        List<KindsCandles> listCurrentCandles = new LinkedList<>(List.of(KindsCandles.ONE));
-                        listCurrentCandles.addAll(
-                                Arrays.stream(timeManager.identifyCurrentCandles(calendar.get(Calendar.MINUTE)))
-                                        .filter(Objects::nonNull)
-                                        .toList()
-                        );
-                        listCurrentCandles =
-                                listCurrentCandles.stream()
-                                        .sorted(Comparator.comparing(KindsCandles::getDurationInterval))
-                                        .toList();
-                        return getCandles(currenciesPairs, listCurrentCandles);
-                    }
+                    if (calendar.get(Calendar.SECOND) == 0)
+                        return getCandles(currenciesPairs, timeManager.getCurrentCandles(calendar));
                     else
                         return Flux.error(
                                 new WrongTimeException(
                                         """
                                         Class: ReceiverLaunchServiceImpl
-                                        Method: Flux<Object> start(CurrenciesPairs currenciesPairs)
+                                        Method: Flux<Object> acstive(CurrenciesPairs currenciesPairs)
                                         """
                                 )
                         );

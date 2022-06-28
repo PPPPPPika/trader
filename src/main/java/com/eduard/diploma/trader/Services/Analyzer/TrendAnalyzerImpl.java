@@ -35,17 +35,11 @@ public class TrendAnalyzerImpl implements TrendAnalyzer {
         this.trendCandlesExtractor = trendCandlesExtractorImpl;
     }
 
-    /*public Flux<Map<KindsCandles, List<? extends Candle>>> start(CurrenciesPairs currenciesPairs){
-        return startAnalyze(currenciesPairs)
-                .doOnNext(map -> map.forEach((key, value) -> System.out.println("\n" + "Key: " + key + ";\n" + "Value: " + value + ";\n")))
-                .repeat(60);
-    }*/
-
     @Override
     public Flux<Map<KindsCandles, List<? extends Candle>>> analyzing(CurrenciesPairs currenciesPairs){
         return Flux.just("")
                 .map(val -> {
-                    System.out.println("Start analyze!");
+                    System.out.println("Method: analyzing(CurrenciesPairs currenciesPairs)");
                     return val;
                 })
                 .flatMap(emptyValue -> determineTrend(currenciesPairs))
@@ -63,10 +57,6 @@ public class TrendAnalyzerImpl implements TrendAnalyzer {
                 .filter(this::limitingExtremes)
                 .flatMap(extremesHandler::mergeExtremes)
                 .filter(value -> value.get("Sequence").size() >= 4)
-                .map(val -> {
-                    System.out.println("Finish analyze!");
-                    return val;
-                })
                 .map(map -> new HashMap<>(Map.of(candlesService.determineTypeCandles(map.get("Sequence")), map.get("Sequence"))));
     }
 
@@ -88,7 +78,7 @@ public class TrendAnalyzerImpl implements TrendAnalyzer {
 
     private Flux<Map<String, List<? extends Candle>>> determineTrend(CurrenciesPairs currenciesPairs){
         return Flux.just("")
-                .flatMap(emptyValue -> receiverLaunchService.start(currenciesPairs))
+                .flatMap(emptyValue -> receiverLaunchService.active(currenciesPairs))
                 .flatMap(packageCandles ->
                         trendCandlesExtractor.extract(candlesService.unpackCandlesPackage(packageCandles))
                                 .doOnNext(value -> System.out.println("Extract: " + value.get(0).getClass()))

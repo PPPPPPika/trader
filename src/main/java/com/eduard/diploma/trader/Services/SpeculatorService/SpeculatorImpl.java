@@ -4,9 +4,7 @@ import com.eduard.diploma.trader.Adapter.CryptoCurrencies.CurrenciesPairs;
 import com.eduard.diploma.trader.Adapter.Market.PriceExplorer;
 import com.eduard.diploma.trader.Adapter.Market.PriceExplorerImpl;
 import com.eduard.diploma.trader.Models.Candles.Enums.KindsCandles;
-import com.eduard.diploma.trader.Services.Receiver.PackageCandles;
-import com.eduard.diploma.trader.Services.Receiver.ReceiverLaunchServiceImpl;
-import com.eduard.diploma.trader.Services.Receiver.TimeManager;
+import com.eduard.diploma.trader.Services.Receiver.*;
 import com.eduard.diploma.trader.Services.SpeculatorService.AnalysisResultProcessing.TradingConditionsResearcherImpl;
 import com.eduard.diploma.trader.Services.SpeculatorService.Details.CurrentSituationDetails;
 import com.eduard.diploma.trader.Services.SpeculatorService.Exceptions.WaitException;
@@ -23,20 +21,20 @@ import java.util.*;
 public class SpeculatorImpl implements Speculator{
     private final TradingConditionsResearcherImpl tradingConditionsResearcherImpl;
     private final PriceExplorer priceExplorer;
-    private final ReceiverLaunchServiceImpl receiverLaunchService;
-    private final TimeManager timeManager;
+    private final ReceiverLaunchService receiverLaunchService;
+    //private final TimeManager timeManager;
 
-    private int usedMinute = 0;
+    //private int usedMinute = 0;
 
     @Autowired
     public SpeculatorImpl(TradingConditionsResearcherImpl tradingConditionsResearcherImpl,
                           PriceExplorerImpl priceExplorerImpl,
-                          ReceiverLaunchServiceImpl receiverLaunchServiceImpl,
-                          TimeManager timeManager){
+                          ReceiverLaunchServiceImplAlternative receiverLaunchServiceImpl
+                          /*TimeManager timeManager*/){
         this.tradingConditionsResearcherImpl = tradingConditionsResearcherImpl;
         this.priceExplorer = priceExplorerImpl;
         this.receiverLaunchService = receiverLaunchServiceImpl;
-        this.timeManager = timeManager;
+        //this.timeManager = timeManager;
     }
 
     public Flux<CurrentSituationDetails> startTrade(CurrenciesPairs currenciesPairs){
@@ -53,38 +51,9 @@ public class SpeculatorImpl implements Speculator{
                 .flatMap(currentSituationDetails -> waitingToSell(currenciesPairs, currentSituationDetails));
     }
 
-    private Flux<PackageCandles> alternativeReceiveCandles(CurrenciesPairs currenciesPairs, GregorianCalendar gregorianCalendar){
-        return Flux.just("")
-                .flatMap(emptyValue -> {
-                    usedMinute = gregorianCalendar.get(Calendar.MINUTE);
-
-                    List<KindsCandles> listCurrentCandles = new LinkedList<>(List.of(KindsCandles.ONE));
-                    listCurrentCandles.addAll(
-                            Arrays.stream(timeManager.identifyCurrentCandles(gregorianCalendar.get(Calendar.MINUTE)))
-                                    .filter(Objects::nonNull)
-                                    .toList()
-                    );
-                    listCurrentCandles =
-                            listCurrentCandles.stream()
-                                    .sorted(Comparator.comparing(KindsCandles::getDurationInterval))
-                                    .toList();
-                    return receiverLaunchService.getCandles(currenciesPairs, listCurrentCandles);
-                });
-    }
-
     private Flux<CurrentSituationDetails> waitingToBuy(CurrenciesPairs currenciesPairs, CurrentSituationDetails currentSituationDetails){
         return Flux.just("")
-                .flatMap(emptyValue -> {
-                    GregorianCalendar calendar = new GregorianCalendar();
-                    if (calendar.get(GregorianCalendar.SECOND) == 0)
-                        return alternativeReceiveCandles(currenciesPairs, calendar);
-                    else if (usedMinute != calendar.get(Calendar.MINUTE) && calendar.get(GregorianCalendar.SECOND) == 1)
-                        return alternativeReceiveCandles(currenciesPairs, calendar);
-                    else if (usedMinute != calendar.get(Calendar.MINUTE) && calendar.get(GregorianCalendar.SECOND) == 2)
-                        return alternativeReceiveCandles(currenciesPairs, calendar);
-                    else
-                        return Flux.error(new IllegalArgumentException("Non time"));
-                })
+                .flatMap(emptyValue -> receiverLaunchService.active(currenciesPairs))
                 .onErrorReturn(new PackageCandles())
                 .flatMap(someValue -> priceExplorer.getValueCurrencyPairs(currenciesPairs))
                 .map(price -> {
@@ -106,7 +75,7 @@ public class SpeculatorImpl implements Speculator{
                             return currentSituationDetails;
                         }
                         else
-                            throw new WaitException("Wait start...");
+                            throw new WaitException("Wait to buy...");
                     }
                     else
                         return new CurrentSituationDetails();
@@ -116,17 +85,7 @@ public class SpeculatorImpl implements Speculator{
 
     private Flux<CurrentSituationDetails> waitingToSell(CurrenciesPairs currenciesPairs, CurrentSituationDetails currentSituationDetails){
         return Flux.just("")
-                .flatMap(emptyValue -> {
-                    GregorianCalendar calendar = new GregorianCalendar();
-                    if (calendar.get(GregorianCalendar.SECOND) == 0)
-                        return alternativeReceiveCandles(currenciesPairs, calendar);
-                    else if (usedMinute != calendar.get(Calendar.MINUTE) && calendar.get(GregorianCalendar.SECOND) == 1)
-                        return alternativeReceiveCandles(currenciesPairs, calendar);
-                    else if (usedMinute != calendar.get(Calendar.MINUTE) && calendar.get(GregorianCalendar.SECOND) == 2)
-                        return alternativeReceiveCandles(currenciesPairs, calendar);
-                    else
-                        return Flux.error(new IllegalArgumentException("Non time"));
-                })
+                .flatMap(emptyValue -> receiverLaunchService.active(currenciesPairs))
                 .onErrorReturn(new PackageCandles())
                 .flatMap(emptyValue -> priceExplorer.getValueCurrencyPairs(currenciesPairs))
                 .map(price -> {
@@ -135,7 +94,7 @@ public class SpeculatorImpl implements Speculator{
                     double priceToSell = Double.parseDouble(currentSituationDetails.getExtremes().get(currentSituationDetails.getExtremes().size() - 1).getMaxPrice());
                     double lowBorderSell = Double.parseDouble(currentSituationDetails.getBottomTradingRange());
 
-                    System.out.println("Waiting to buy..." + "\n" + "Middle price: " + currentSituationDetails.getMiddles().get("finalMiddle") + "\n" +
+                    System.out.println("Waiting to sell..." + "\n" + "Middle price: " + currentSituationDetails.getMiddles().get("finalMiddle") + "\n" +
                             "lowBorderSell: " + lowBorderSell);
 
                     if (currentPrice >= priceToSell || currentPrice <= lowBorderSell){
@@ -149,7 +108,7 @@ public class SpeculatorImpl implements Speculator{
                         return currentSituationDetails;
                     }
                     else
-                        throw new WaitException("Wait sell...");
+                        throw new WaitException("Wait to sell...");
                 })
                 .retryWhen(Retry.fixedDelay(Long.MAX_VALUE, Duration.ofSeconds(1)));
     }
