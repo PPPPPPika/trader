@@ -112,7 +112,7 @@ public class CandlesServiceImpl implements CandlesService, CandlesProcessingServ
     }
 
     @Override
-    public Mono<?> saveCandle(Object candle){
+    public Mono<?> saveCandle(Object candle) {
         if (candle instanceof OneMinuteCandle instance)
             return oneMinuteCandleRepository.save(instance);
         else if (candle instanceof ThreeMinuteCandle instance)

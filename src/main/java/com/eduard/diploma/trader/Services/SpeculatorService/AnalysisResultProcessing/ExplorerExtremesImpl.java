@@ -30,16 +30,13 @@ public class ExplorerExtremesImpl implements ExplorerExtremes{
     @Override
     public Flux<Map<KindsCandles, List<? extends Candle>>> reviewExtremes(CurrenciesPairs currenciesPairs){
         return Flux.just("")
-                .map(val -> {
+                /*.map(val -> {
                     System.out.println("Start reviewExtremes");
                     return val;
-                })
+                })*/
                 .flatMap(emptyValue -> trendAnalyzer.analyzing(currenciesPairs))
                 .filterWhen(map -> {
                     KindsCandles kindCandle = map.keySet().stream().toList().get(0);
-
-                    System.out.println("kindCandle(reviewExtremes): " + kindCandle);
-
                     return getLastCandles(kindCandle)
                             .map(lastCandles -> validateClosingTime(map.get(kindCandle), lastCandles));
                 })
@@ -62,10 +59,10 @@ public class ExplorerExtremesImpl implements ExplorerExtremes{
         return Mono.just("")
                 .map(emptyValue -> candlesService.findLastThreeCandles(kindsCandles))
                 .flatMap(Flux::collectList)
-                .map(val -> {
+                /*.map(val -> {
                     System.out.println("Last candles: " + val);
                     return val;
-                });
+                })*/;
     }
 
 }

@@ -1,6 +1,7 @@
 package com.eduard.diploma.trader.Services.SpeculatorService.AnalysisResultProcessing;
 
 import com.eduard.diploma.trader.Adapter.CryptoCurrencies.CurrenciesPairs;
+import com.eduard.diploma.trader.Models.Candles.Candle;
 import com.eduard.diploma.trader.Services.CandlesService;
 import com.eduard.diploma.trader.Services.CandlesServiceImpl;
 import com.eduard.diploma.trader.Services.SpeculatorService.Details.CurrentSituationDetails;
@@ -13,22 +14,23 @@ import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Map;
 
 @Component
 public class TradingConditionsResearcherImpl implements TradingConditionsResearcher{
-    private final RangeCalculatorImpl rangeCalculatorImpl;
+    private final RangeCalculator rangeCalculator;
     private final CandlesService candlesService;
 
     @Autowired
-    public TradingConditionsResearcherImpl(RangeCalculatorImpl rangeCalculatorImpl, CandlesServiceImpl candlesServiceImpl) {
-        this.rangeCalculatorImpl = rangeCalculatorImpl;
+    public TradingConditionsResearcherImpl(RangeCalculatorImpl rangeCalculator, CandlesServiceImpl candlesServiceImpl) {
+        this.rangeCalculator = rangeCalculator;
         this.candlesService = candlesServiceImpl;
     }
 
     @Override
     public Flux<CurrentSituationDetails> research(CurrenciesPairs currenciesPairs){
-        return rangeCalculatorImpl.build(currenciesPairs)
+        return rangeCalculator.build(currenciesPairs)
                 .flatMap(trendDetails ->
                         candlesService.findLastCandle(trendDetails.getKindCandle())
                             .map(currentCandle -> {
@@ -37,16 +39,17 @@ public class TradingConditionsResearcherImpl implements TradingConditionsResearc
 
                                 for (Map.Entry<String, String> currenMap : trendDetails.getMiddles().entrySet()){
                                     if (currenMap.getKey().equals("firstMiddle")){
+                                        List<? extends Candle> listExtremes = trendDetails.getExtremes();
                                         BigDecimal radiusRange =
-                                                new BigDecimal(trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 3).getMaxPrice())
-                                                        .subtract(new BigDecimal(trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 4).getMinPrice()))
+                                                new BigDecimal(listExtremes.get(trendDetails.getExtremes().size() - 3).getMaxPrice())
+                                                        .subtract(new BigDecimal(listExtremes.get(trendDetails.getExtremes().size() - 4).getMinPrice()))
                                                         .divide(new BigDecimal("4"), 2, RoundingMode.DOWN)
                                                         .divide(new BigDecimal("2"), 2, RoundingMode.DOWN);
 
                                         double highBorder = new BigDecimal(currenMap.getValue()).add(radiusRange).doubleValue();
                                         double lowBorder = new BigDecimal(currenMap.getValue()).subtract(radiusRange).doubleValue();
 
-                                        double startLastImpulse = Double.parseDouble(trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 2).getMinPrice());
+                                        double startLastImpulse = Double.parseDouble(listExtremes.get(listExtremes.size() - 2).getMinPrice());
                                         if (startLastImpulse < highBorder && startLastImpulse > lowBorder){
                                             finalMiddle = trendDetails.getMiddles().get("secondMiddle");
                                             rangeDetails = computeRangeDetails(trendDetails);
@@ -75,9 +78,10 @@ public class TradingConditionsResearcherImpl implements TradingConditionsResearc
     }
 
     private RangeDetails computeRangeDetails(TrendDetails trendDetails){
+        List<? extends Candle> listExtremes = trendDetails.getExtremes();
         BigDecimal radiusSecondRange =
-                new BigDecimal(trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 1).getMaxPrice())
-                        .subtract(new BigDecimal(trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 2).getMinPrice()))
+                new BigDecimal(listExtremes.get(listExtremes.size() - 1).getMaxPrice())
+                        .subtract(new BigDecimal(listExtremes.get(listExtremes.size() - 2).getMinPrice()))
                         .divide(new BigDecimal("5"), 2, RoundingMode.DOWN)
                         .divide(new BigDecimal("2"), 2, RoundingMode.DOWN);
 
@@ -92,19 +96,20 @@ public class TradingConditionsResearcherImpl implements TradingConditionsResearc
 
         return new RangeDetails(
                 trendDetails,
-                trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 2),
-                trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 1),
+                trendDetails.getExtremes().get(listExtremes.size() - 2),
+                trendDetails.getExtremes().get(listExtremes.size() - 1),
                 lastHighBorder,
                 lastLowBorder
         );
     }
 
     private RangeDetails computeRangeDetailsFromGeneralRange(TrendDetails trendDetails){
+        List<? extends Candle> listExtremes = trendDetails.getExtremes();
         String middleGeneralRange = computeMiddleGeneralRange(trendDetails);
 
         BigDecimal radiusGeneralRange =
-                new BigDecimal(trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 1).getMaxPrice())
-                        .subtract(new BigDecimal(trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 4).getMinPrice()))
+                new BigDecimal(listExtremes.get(listExtremes.size() - 1).getMaxPrice())
+                        .subtract(new BigDecimal(listExtremes.get(listExtremes.size() - 4).getMinPrice()))
                         .divide(new BigDecimal("5"), 2, RoundingMode.DOWN)
                         .divide(new BigDecimal("2"), 2, RoundingMode.DOWN);
 
@@ -119,8 +124,8 @@ public class TradingConditionsResearcherImpl implements TradingConditionsResearc
 
         return new RangeDetails(
                 trendDetails,
-                trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 4),
-                trendDetails.getExtremes().get(trendDetails.getExtremes().size() - 1),
+                trendDetails.getExtremes().get(listExtremes.size() - 4),
+                trendDetails.getExtremes().get(listExtremes.size() - 1),
                 generalHighBorder,
                 generalLowBorder
         );

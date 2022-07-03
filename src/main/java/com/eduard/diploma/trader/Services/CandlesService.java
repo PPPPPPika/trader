@@ -2,6 +2,7 @@ package com.eduard.diploma.trader.Services;
 
 import com.eduard.diploma.trader.Models.Candles.Candle;
 import com.eduard.diploma.trader.Models.Candles.Enums.KindsCandles;
+import com.eduard.diploma.trader.Services.Exceptions.WrongCandleException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -10,7 +11,7 @@ import java.util.List;
 public interface CandlesService {
     <CandleType extends Candle> Flux<? extends Candle> saveManyCandles(List<CandleType> listCandles);
 
-    Mono<?> saveCandle(Object candle);
+    Mono<?> saveCandle(Object candle) throws WrongCandleException;
 
     Mono<Boolean> isDuplicateCandle(Object candle);
 

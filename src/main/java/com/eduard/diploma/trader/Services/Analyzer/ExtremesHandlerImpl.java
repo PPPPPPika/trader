@@ -1,6 +1,7 @@
 package com.eduard.diploma.trader.Services.Analyzer;
 
 import com.eduard.diploma.trader.Models.Candles.Candle;
+import com.eduard.diploma.trader.Services.CandlesProcessingService;
 import com.eduard.diploma.trader.Services.CandlesServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -13,7 +14,7 @@ import java.util.Map;
 
 @Component
 public class ExtremesHandlerImpl implements ExtremesHandler {
-    private final CandlesServiceImpl candlesService;
+    private final CandlesProcessingService candlesService;
 
     @Autowired
     public ExtremesHandlerImpl(CandlesServiceImpl candlesServiceImpl) {
@@ -28,16 +29,22 @@ public class ExtremesHandlerImpl implements ExtremesHandler {
         List<CandleType> bufferList = new LinkedList<>();
         int listSize = listPoints.size();
         for (int i = 1; i < listSize; i++){
-            if (listPoints.get(i - 1).getCloseTime() + interval != listPoints.get(i).getCloseTime())
-                updatedPointsList.add(listPoints.get(i));
+            CandleType currentCandle = listPoints.get(i);
+            CandleType previousCandle = listPoints.get(i - 1);
+
+            if (previousCandle.getCloseTime() + interval != currentCandle.getCloseTime())
+                updatedPointsList.add(currentCandle);
             else {
-                bufferList.add(listPoints.get(i - 1));
-                bufferList.add(listPoints.get(i));
+                bufferList.add(previousCandle);
+                bufferList.add(currentCandle);
 
                 if (i + 1 != listSize){
                     for (int j = i; j < listSize - 1; j++){
-                        if (listPoints.get(j).getCloseTime() + interval == listPoints.get(j + 1).getCloseTime()){
-                            bufferList.add(listPoints.get(j + 1));
+                        CandleType currentElement = listPoints.get(j);
+                        CandleType nextElement = listPoints.get(j + 1);
+
+                        if (currentElement.getCloseTime() + interval == nextElement.getCloseTime()){
+                            bufferList.add(nextElement);
                             if (j + 1 != listSize)
                                 i = j + 1;
                             else
@@ -94,7 +101,6 @@ public class ExtremesHandlerImpl implements ExtremesHandler {
                         }
                     }
                     map.put("Sequence", sequence);
-
                     return map;
                 });
     }

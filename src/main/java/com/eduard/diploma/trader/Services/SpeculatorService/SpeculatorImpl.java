@@ -3,8 +3,9 @@ package com.eduard.diploma.trader.Services.SpeculatorService;
 import com.eduard.diploma.trader.Adapter.CryptoCurrencies.CurrenciesPairs;
 import com.eduard.diploma.trader.Adapter.Market.PriceExplorer;
 import com.eduard.diploma.trader.Adapter.Market.PriceExplorerImpl;
-import com.eduard.diploma.trader.Models.Candles.Enums.KindsCandles;
+import com.eduard.diploma.trader.Models.Candles.Candle;
 import com.eduard.diploma.trader.Services.Receiver.*;
+import com.eduard.diploma.trader.Services.SpeculatorService.AnalysisResultProcessing.TradingConditionsResearcher;
 import com.eduard.diploma.trader.Services.SpeculatorService.AnalysisResultProcessing.TradingConditionsResearcherImpl;
 import com.eduard.diploma.trader.Services.SpeculatorService.Details.CurrentSituationDetails;
 import com.eduard.diploma.trader.Services.SpeculatorService.Exceptions.WaitException;
@@ -19,7 +20,7 @@ import java.util.*;
 
 @Service
 public class SpeculatorImpl implements Speculator{
-    private final TradingConditionsResearcherImpl tradingConditionsResearcherImpl;
+    private final TradingConditionsResearcher tradingConditionsResearcher;
     private final PriceExplorer priceExplorer;
     private final ReceiverLaunchService receiverLaunchService;
     //private final TimeManager timeManager;
@@ -27,11 +28,11 @@ public class SpeculatorImpl implements Speculator{
     //private int usedMinute = 0;
 
     @Autowired
-    public SpeculatorImpl(TradingConditionsResearcherImpl tradingConditionsResearcherImpl,
+    public SpeculatorImpl(TradingConditionsResearcherImpl tradingConditionsResearcher,
                           PriceExplorerImpl priceExplorerImpl,
                           ReceiverLaunchServiceImplAlternative receiverLaunchServiceImpl
                           /*TimeManager timeManager*/){
-        this.tradingConditionsResearcherImpl = tradingConditionsResearcherImpl;
+        this.tradingConditionsResearcher = tradingConditionsResearcher;
         this.priceExplorer = priceExplorerImpl;
         this.receiverLaunchService = receiverLaunchServiceImpl;
         //this.timeManager = timeManager;
@@ -45,7 +46,7 @@ public class SpeculatorImpl implements Speculator{
     @Override
     public Flux<CurrentSituationDetails> trade(CurrenciesPairs currenciesPairs){
         return Flux.just("")
-                .flatMap(emptyValue -> tradingConditionsResearcherImpl.research(currenciesPairs))
+                .flatMap(emptyValue -> tradingConditionsResearcher.research(currenciesPairs))
                 .flatMap(currentSituationDetails -> waitingToBuy(currenciesPairs, currentSituationDetails))
                 .filter(value -> !value.isEmpty())
                 .flatMap(currentSituationDetails -> waitingToSell(currenciesPairs, currentSituationDetails));
@@ -58,12 +59,13 @@ public class SpeculatorImpl implements Speculator{
                 .flatMap(someValue -> priceExplorer.getValueCurrencyPairs(currenciesPairs))
                 .map(price -> {
                     System.out.println("Waiting to buy..." + "\n" + "Middle price: " + currentSituationDetails.getMiddles().get("finalMiddle") + "\n");
+                    List<? extends Candle> listExtremes = currentSituationDetails.getExtremes();
                     double currentPrice = Double.parseDouble(price);
 
                     double highBorderBuy = new BigDecimal(currentSituationDetails.getTopTradingRange()).doubleValue();
                     double lowBorderBuy = new BigDecimal(currentSituationDetails.getBottomTradingRange()).doubleValue();
 
-                    if (currentPrice <= Double.parseDouble(currentSituationDetails.getExtremes().get(currentSituationDetails.getExtremes().size() - 1).getMaxPrice())){
+                    if (currentPrice <= Double.parseDouble(listExtremes.get(listExtremes.size() - 1).getMaxPrice())){
                         if (currentPrice <= highBorderBuy && currentPrice >= lowBorderBuy){
                             System.out.println(
                                     "\n" + "___BUY___" +
@@ -89,9 +91,10 @@ public class SpeculatorImpl implements Speculator{
                 .onErrorReturn(new PackageCandles())
                 .flatMap(emptyValue -> priceExplorer.getValueCurrencyPairs(currenciesPairs))
                 .map(price -> {
+                    List<? extends Candle> listExtremes = currentSituationDetails.getExtremes();
                     double currentPrice = Double.parseDouble(price);
 
-                    double priceToSell = Double.parseDouble(currentSituationDetails.getExtremes().get(currentSituationDetails.getExtremes().size() - 1).getMaxPrice());
+                    double priceToSell = Double.parseDouble(listExtremes.get(listExtremes.size() - 1).getMaxPrice());
                     double lowBorderSell = Double.parseDouble(currentSituationDetails.getBottomTradingRange());
 
                     System.out.println("Waiting to sell..." + "\n" + "Middle price: " + currentSituationDetails.getMiddles().get("finalMiddle") + "\n" +

@@ -1,6 +1,7 @@
 package com.eduard.diploma.trader.Services.Analyzer;
 
 import com.eduard.diploma.trader.Models.Candles.Candle;
+import com.eduard.diploma.trader.Services.CandlesProcessingService;
 import com.eduard.diploma.trader.Services.CandlesServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -10,7 +11,7 @@ import java.util.*;
 
 @Component
 public class TrendFinderImpl implements TrendFinder {
-    private final CandlesServiceImpl candlesService;
+    private final CandlesProcessingService candlesService;
 
     @Autowired
     public TrendFinderImpl(CandlesServiceImpl candlesServiceImpl) {
@@ -31,13 +32,15 @@ public class TrendFinderImpl implements TrendFinder {
     }
 
     private double calculationTrendSing(List<? extends Candle> candlesList){
-        if (candlesService.isPositiveCandle(candlesList.get(0)))
-            return new BigDecimal(candlesList.get(candlesList.size() - 1).getClosePrice())
-                    .subtract(new BigDecimal(candlesList.get(0).getOpenPrice()))
+        Candle firstCandle = candlesList.get(0);
+        int lastIndex = candlesList.size() - 1;
+        if (candlesService.isPositiveCandle(firstCandle))
+            return new BigDecimal(candlesList.get(lastIndex).getClosePrice())
+                    .subtract(new BigDecimal(firstCandle.getOpenPrice()))
                     .doubleValue();
         else
-            return new BigDecimal(candlesList.get(candlesList.size() - 1).getClosePrice())
-                    .subtract(new BigDecimal(candlesList.get(0).getClosePrice()))
+            return new BigDecimal(candlesList.get(lastIndex).getClosePrice())
+                    .subtract(new BigDecimal(firstCandle.getClosePrice()))
                     .doubleValue();
     }
 
@@ -48,8 +51,9 @@ public class TrendFinderImpl implements TrendFinder {
         int sizeCandlesList = candlesList.size();
         int borderIndex = 0;
         for (int i = sizeCandlesList - 2; i > 0; i--){
-            if (Double.parseDouble(candlesList.get(i).getMinPrice()) < Double.parseDouble(currentMinimumCandle.getMinPrice())){
-                currentMinimumCandle = candlesList.get(i);
+            CandleType currentCandle = candlesList.get(i);
+            if (Double.parseDouble(currentCandle.getMinPrice()) < Double.parseDouble(currentMinimumCandle.getMinPrice())){
+                currentMinimumCandle = currentCandle;
                 minimumsList.add(currentMinimumCandle);
                 borderIndex = i;
             }
@@ -61,24 +65,28 @@ public class TrendFinderImpl implements TrendFinder {
         CandleType currentMaximumCandle = borderCandle;
 
         for (int i = borderIndex + 1; i < sizeCandlesList; i++){
-            if (Double.parseDouble(candlesList.get(i).getMaxPrice()) > Double.parseDouble(currentMaximumCandle.getMaxPrice())){
-                currentMaximumCandle = candlesList.get(i);
+            CandleType currentCandle = candlesList.get(i);
+            if (Double.parseDouble(currentCandle.getMaxPrice()) > Double.parseDouble(currentMaximumCandle.getMaxPrice())){
+                currentMaximumCandle = currentCandle;
                 maximumsList.add(currentMaximumCandle);
             }
         }
         return new HashMap<>(Map.of("Minimums", minimumsList, "AllUpTrend", candlesList.subList(borderIndex, candlesList.size() - 1), "Maximums", maximumsList));
     }
 
-    private <CandleType extends Candle> HashMap<String, List<? extends Candle>> searchDownTrend(List<CandleType> candlesList){////////////////////////////
-        int penultimateCandle = candlesList.size() - 1;
-        List<CandleType> maximumsList = new ArrayList<>(List.of(candlesList.get(penultimateCandle)));
-        CandleType currentMaximum = candlesList.get(penultimateCandle);
+    private <CandleType extends Candle> HashMap<String, List<? extends Candle>> searchDownTrend(List<CandleType> candlesList){
+        int penultimateCandleIndex = candlesList.size() - 1;
+        CandleType penultimateCandle = candlesList.get(penultimateCandleIndex);
+
+        List<CandleType> maximumsList = new ArrayList<>(List.of(penultimateCandle));
+        CandleType currentMaximum = penultimateCandle;
         int indexCurrentMaximum = 0;
 
         for (int i = candlesList.size() - 2; i > 0; i--){
-            if (Double.parseDouble(candlesList.get(i).getMaxPrice()) > Double.parseDouble(currentMaximum.getMaxPrice())){
-                currentMaximum = candlesList.get(i);
-                maximumsList.add(candlesList.get(i));
+            CandleType currentCandle = candlesList.get(i);
+            if (Double.parseDouble(currentCandle.getMaxPrice()) > Double.parseDouble(currentMaximum.getMaxPrice())){
+                currentMaximum = currentCandle;
+                maximumsList.add(currentCandle);
                 indexCurrentMaximum = i;
             }
         }
@@ -87,8 +95,9 @@ public class TrendFinderImpl implements TrendFinder {
         CandleType currentMinimumCandle = candlesList.get(indexCurrentMaximum);
 
         for (int i = indexCurrentMaximum + 1; i < candlesList.size() - 1; i++){
-            if (Double.parseDouble(candlesList.get(i).getMinPrice()) < Double.parseDouble(currentMinimumCandle.getMinPrice())){
-                currentMinimumCandle = candlesList.get(i);
+            CandleType currentCandle = candlesList.get(i);
+            if (Double.parseDouble(currentCandle.getMinPrice()) < Double.parseDouble(currentMinimumCandle.getMinPrice())){
+                currentMinimumCandle = currentCandle;
                 minimumList.add(currentMinimumCandle);
             }
         }

@@ -3,6 +3,7 @@ package com.eduard.diploma.trader.Services.Analyzer;
 import com.eduard.diploma.trader.Adapter.CryptoCurrencies.CurrenciesPairs;
 import com.eduard.diploma.trader.Models.Candles.Candle;
 import com.eduard.diploma.trader.Models.Candles.Enums.KindsCandles;
+import com.eduard.diploma.trader.Services.CandlesProcessingService;
 import com.eduard.diploma.trader.Services.CandlesServiceImpl;
 import com.eduard.diploma.trader.Services.Receiver.ReceiverLaunchService;
 import com.eduard.diploma.trader.Services.Receiver.ReceiverLaunchServiceImpl;
@@ -17,7 +18,7 @@ import java.util.Map;
 @Service
 public class TrendAnalyzerImpl implements TrendAnalyzer {
     private final ReceiverLaunchService receiverLaunchService;
-    private final CandlesServiceImpl candlesService;
+    private final CandlesProcessingService candlesService;
     private final TrendFinder trendFinder;
     private final ExtremesHandler extremesHandler;
     private final TrendCandlesExtractor trendCandlesExtractor;
@@ -38,10 +39,10 @@ public class TrendAnalyzerImpl implements TrendAnalyzer {
     @Override
     public Flux<Map<KindsCandles, List<? extends Candle>>> analyzing(CurrenciesPairs currenciesPairs){
         return Flux.just("")
-                .map(val -> {
+                /*.map(val -> {
                     System.out.println("Method: analyzing(CurrenciesPairs currenciesPairs)");
                     return val;
-                })
+                })*/
                 .flatMap(emptyValue -> determineTrend(currenciesPairs))
                 .filter(map -> map.containsKey("AllUpTrend") && limitingExtremes(map))
                 .map(map -> {

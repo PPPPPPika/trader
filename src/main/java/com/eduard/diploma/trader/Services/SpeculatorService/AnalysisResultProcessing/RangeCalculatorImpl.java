@@ -16,17 +16,17 @@ import java.util.Map;
 
 @Component
 public class RangeCalculatorImpl implements RangeCalculator{
-    private final ExplorerExtremesImpl explorerExtremesImpl;
+    private final ExplorerExtremes explorerExtremes;
 
     @Autowired
-    public RangeCalculatorImpl(ExplorerExtremesImpl explorerExtremesImpl) {
-        this.explorerExtremesImpl = explorerExtremesImpl;
+    public RangeCalculatorImpl(ExplorerExtremesImpl explorerExtremes) {
+        this.explorerExtremes = explorerExtremes;
     }
 
     @Override
     public Flux<TrendDetails> build(CurrenciesPairs currenciesPairs){
         return Flux.just("")
-                .flatMap(emptyValue -> explorerExtremesImpl.reviewExtremes(currenciesPairs))
+                .flatMap(emptyValue -> explorerExtremes.reviewExtremes(currenciesPairs))
                 .filter(map -> {
                     if (map.keySet().size() == 1)
                         return correctnessLastExtreme(map.get(map.keySet().stream().limit(1).toList().get(0)));
@@ -45,11 +45,13 @@ public class RangeCalculatorImpl implements RangeCalculator{
             int listSize = currentMap.getValue().size();
             int index = 0;
             for (int i = listSize - 4; i < listSize; i += 2){
+                Candle currentCandle = currentMap.getValue().get(i);
+                Candle nextCandle = currentMap.getValue().get(i + 1);
                 String middle =
-                        new BigDecimal(currentMap.getValue().get(i + 1).getMaxPrice())
-                                .subtract(new BigDecimal(currentMap.getValue().get(i).getMinPrice()))
+                        new BigDecimal(nextCandle.getMaxPrice())
+                                .subtract(new BigDecimal(currentCandle.getMinPrice()))
                                 .divide(new BigDecimal("2"), 2, RoundingMode.DOWN)
-                                .add(new BigDecimal(currentMap.getValue().get(i).getMinPrice()))
+                                .add(new BigDecimal(currentCandle.getMinPrice()))
                                 .toString();
                 if (index == 0)
                     middlesMap.put("firstMiddle", middle);
